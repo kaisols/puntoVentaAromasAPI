@@ -91,7 +91,9 @@ namespace Api_PuntoVenta.Models
                         SET DATEFORMAT ymd
 
                         {0}	         
-
+                            
+                            SELECT 2;
+                            
                         COMMIT; 
                         END
                         END TRY

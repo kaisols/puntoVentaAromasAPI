@@ -22,6 +22,7 @@ namespace Api_PuntoVenta.Models
         public bool? estado { get; set; }
         public int? tipoconsulta { get; set; }
         public Auditoria? miAuditoria { get; set; } 
+        public Aperturacaja? miApertura { get; set; }
 
         #endregion ============================= PROPIEDADES =============================
 
@@ -312,6 +313,17 @@ namespace Api_PuntoVenta.Models
 
 
                                 objEncontrado.Token = Token;
+
+                                Respuesta respApertura = new Aperturacaja { miUsuario = objEncontrado, tipoconsulta = 1, estado = true}.Obtener();
+
+                                Aperturacaja aperturaCaja = null;
+
+                                if(respApertura.resultado && respApertura.objeto != null)
+                                {
+                                    aperturaCaja = (Aperturacaja)respApertura.objeto;
+                                }
+
+                                objEncontrado.miApertura = aperturaCaja;
                                 miRespuesta.resultado = true;
                                 miRespuesta.mensaje = "Exito";
                                 miRespuesta.codigoError = 2;

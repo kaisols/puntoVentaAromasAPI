@@ -15,8 +15,8 @@ namespace AccesoDatos
         #region Constructor
         public Conexion()
         {
-            string cadenaConexion = @"Server=127.0.0.1;DataBase=PuntoVentaAromas;User Id=sa;Password=2407;";
-            
+            string cadenaConexion = @"Server=127.0.0.1;DataBase=PuntoVentaAromas;User Id=sa;Password=2407;"; 
+ 
             //instaciamos el objeto cnx con la cadena de conexion
             cnx = new SqlConnection(cadenaConexion);
         }
