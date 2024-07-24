@@ -2,6 +2,7 @@
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,19 +10,26 @@ using System.Threading.Tasks;
 namespace Api_PuntoVenta.Models
 {
     [ValidateNever]
-    public class Proveedor : IOrdenConsulta
+    public class Productos : IOrdenConsulta
     {
         #region ============================= PROPIEDADES =============================
 
         public int id { get; set; }
+        public Categoria? miCategoria { get; set; }
+        public Impuesto? miImpuesto { get; set; }
+        public Unidadmedida? miUnidadMedida { get; set; }
         public string? nombre { get; set; }
-        public string? cedula { get; set; }
-        public string? telefono { get; set; }
-        public string? correo { get; set; }
+        public string? codBarras { get; set; }
+        public decimal stock { get; set; }
+        public bool reduceInventario { get; set; }
+        public decimal precioCompra { get; set; }
+        public decimal precioVenta { get; set; }
+        public decimal utilidad { get; set; }
         public DateTime fecha_registro { get; set; }
         public bool estado { get; set; }
         public int? tipoconsulta { get; set; }
         public Auditoria? miAuditoria { get; set; }
+        public List<Proveedor>? Proveedores { get; set; }
 
         #endregion ============================= PROPIEDADES =============================
 
@@ -35,9 +43,21 @@ namespace Api_PuntoVenta.Models
 
                 if (tipoconsulta == 1)
                 {
-                    consulta = $@"
-                                   UPDATE T_Proveedor SET nombre = '{this.nombre}' WHERE id = {id};
+                    consulta = $@"DECLARE @id as int =  '{id}';
+
+                                   UPDATE T_Productos SET nombre = '{this.nombre}', 
+                                    idCategoria = '{miCategoria.id}', 
+                                    idUnidadMedida = '{miUnidadMedida.id}', 
+                                    idImpuesto = '{miImpuesto.id}',
+                                    reduceInventario = '{reduceInventario}', 
+                                    precioCompra = '{precioCompra.ToString(new CultureInfo("en-US"))}',
+                                    precioVenta = '{precioVenta.ToString(new CultureInfo("en-US"))}',
+                                    utilidad = '{utilidad.ToString(new CultureInfo("en-US"))}'
+                                   WHERE id = @id ;
  
+                                   {GetProveedores()}
+                        
+
                                    {miAuditoria.ObtenerAuditoria()}
                                    
                                    SELECT 2;";
@@ -46,7 +66,7 @@ namespace Api_PuntoVenta.Models
                 else if (tipoconsulta == 2)
                 {
 
-                    consulta = $@"UPDATE T_Proveedor SET estado = '{this.estado}' WHERE id = '{this.id}'
+                    consulta = $@"UPDATE T_Productos SET estado = '{this.estado}' WHERE id = '{this.id}'
                                             {miAuditoria.ObtenerAuditoria()}                                
                                             SELECT 2;";
                 }
@@ -90,26 +110,27 @@ namespace Api_PuntoVenta.Models
 
             try
             {
-                List<Proveedor> objEncontrado = null;
+                List<Productos> objEncontrado = null;
                 string consulta = "";
 
                 if (objDatos.AbrirConexion())
                 {
                     if (tipoconsulta == 1)
                     {
-                        consulta = $@"SELECT id, nombre, cedula, telefono, correo, fecha_registro, estado 
-                                    FROM T_Proveedor
+                        consulta = $@"SELECT 
+                                    P.id, P.nombre, P.codBarras, P.stock, P.reduceInventario, P.precioCompra, P.precioVenta, P.utilidad, P.fecha_registro, P.estado,
+                                    C.id as 'miCategoria.id', C.nombre 'miCategoria.nombre',
+                                    I.id as 'miImpuesto.id', I.nombre as 'miImpuesto.nombre', I.PorcentajeIVA as 'miImpuesto.PorcentajeIVA',
+                                    U.id as 'miUnidadMedida.miUnidadMedida', U.nombre as 'miUnidadMedida.nombre'
+                                    FROM T_Productos P
+                                    INNER JOIN T_Categoria C on C.id = P.idCategoria
+                                    INNER JOIN T_UnidadMedida U on U.id = P.idUnidadMedida
+                                    INNER JOIN T_Impuesto I on I.id = P.idImpuesto
+                                    WHERE P.estado = '{Convert.ToByte(this.estado)}'
                                     FOR JSON PATH";
                     }
 
-                    if (tipoconsulta == 2)
-                    {
-                        consulta = $@"SELECT id, nombre, cedula, telefono, correo, fecha_registro, estado 
-                                    FROM T_Proveedor WHERE estado = '{estado}'
-                                    FOR JSON PATH";
-                    }
-
-                    objEncontrado = JsonConvert.DeserializeObject<List<Proveedor>>(objDatos.HacerSelectJSONPATH(consulta));
+                    objEncontrado = JsonConvert.DeserializeObject<List<Productos>>(objDatos.HacerSelectJSONPATH(consulta));
 
 
                     if (objEncontrado != null)
@@ -166,13 +187,16 @@ namespace Api_PuntoVenta.Models
 
                 if (tipoconsulta == 1)
                 {
-                    consulta = $@"IF((SELECT COUNT(*) FROM T_Proveedor WHERE cedula = '{cedula}') <= 0)
+                    consulta = $@"IF((SELECT COUNT(*) FROM T_Productos WHERE codBarras = '{codBarras}') <= 0)
 	                                BEGIN
                                         
-                                        DECLARE @id as int = (SELECT ISNULL(MAX(id), 0) + 1 from T_Proveedor);
+                                        DECLARE @id as int = (SELECT ISNULL(MAX(id), 0) + 1 from T_Productos);
 
-		                                INSERT INTO T_Proveedor (id, nombre, cedula, telefono, correo)
-		                                VALUES(@id, '{nombre}', '{cedula}', '{telefono}', '{correo}'); 
+		                                INSERT INTO T_Productos (id, idCategoria, idImpuesto, idUnidadMedida, nombre, codBarras, stock, reduceInventario, precioCompra, precioVenta,utilidad)
+                                        VALUES(@id, '{miCategoria.id}', '{miImpuesto.id}', '{miUnidadMedida.id}', '{nombre}', '{codBarras}', '0', '{reduceInventario}', '{precioCompra}', '{precioVenta}', '{utilidad}')
+
+                                        {GetProveedores()}
+
 
                                          {miAuditoria.ObtenerAuditoria()}
 
@@ -233,20 +257,33 @@ namespace Api_PuntoVenta.Models
 
             try
             {
-                Proveedor objEncontrado = null;
+                Productos objEncontrado = null;
                 string consulta = "";
 
                 if (objDatos.AbrirConexion())
                 {
                     if (tipoconsulta == 1)
                     {
-                        consulta = $@"SELECT id, nombre, cedula, telefono, correo, fecha_registro, estado 
-                                    FROM T_Proveedor
-                                    WHERE id = '{id}' 
+                        consulta = $@"SELECT 
+                                    P.id, P.nombre, P.codBarras, P.stock, P.reduceInventario, P.precioCompra, P.precioVenta, P.utilidad, P.fecha_registro, P.estado,
+                                    C.id as 'miCategoria.id', C.nombre 'miCategoria.nombre',
+                                    I.id as 'miImpuesto.id', I.nombre as 'miImpuesto.nombre', I.PorcentajeIVA as 'miImpuesto.PorcentajeIVA',
+                                    U.id as 'miUnidadMedida.id', U.nombre as 'miUnidadMedida.nombre',
+                                    (SELECT 
+                                        PX.id, PX.nombre, PX.cedula, PX.telefono, PX.correo, PX.fecha_registro, PX.estado 
+                                        FROM T_ProductoProveedor PP
+                                        INNER JOIN T_Proveedor PX on PP.idProveedor = PX.id
+                                        WHERE PP.idProducto = P.id
+                                        FOR JSON PATH) as  Proveedores
+                                    FROM T_Productos P
+                                    INNER JOIN T_Categoria C on C.id = P.idCategoria
+                                    INNER JOIN T_UnidadMedida U on U.id = P.idUnidadMedida
+                                    INNER JOIN T_Impuesto I on I.id = P.idImpuesto
+                                    WHERE P.estado = '{Convert.ToByte(this.estado)}' AND P.id = '{id}'
                                     FOR JSON PATH, WITHOUT_ARRAY_WRAPPER";
                     }
 
-                    objEncontrado = JsonConvert.DeserializeObject<Proveedor>(objDatos.HacerSelectJSONPATH(consulta));
+                    objEncontrado = JsonConvert.DeserializeObject<Productos>(objDatos.HacerSelectJSONPATH(consulta));
 
 
                     if (objEncontrado != null)
@@ -293,6 +330,25 @@ namespace Api_PuntoVenta.Models
             return miRespuesta;
         }
 
+        public string GetProveedores()
+        {
+            string consulta = "";
+            consulta = "DELETE FROM T_ProductoProveedor WHERE idProducto = @id" + Environment.NewLine; 
+
+            if (Proveedores != null && Proveedores.Count > 0)
+            { 
+                foreach (var item in Proveedores)
+                {
+                    consulta += $@"INSERT INTO T_ProductoProveedor (id,idProveedor, idProducto)
+                                  VALUES((SELECT ISNULL(MAX(id), 0) + 1 from T_ProductoProveedor), '{item.id}', @id)" + Environment.NewLine;
+                }
+            }
+
+            return consulta;
+
+        }
+
+
         #region ************************************** TRANSACTION **************************************
         public Respuesta transaccion(string query)
         {
@@ -332,6 +388,9 @@ namespace Api_PuntoVenta.Models
 
 
         #endregion
+
+
+
 
     }
 }
