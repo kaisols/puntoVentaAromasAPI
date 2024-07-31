@@ -1,41 +1,21 @@
-using Api_PuntoVenta.Models;
+﻿using Api_PuntoVenta.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Api_PuntoVenta.Controllers
 {
-    [ApiController]
+    [Authorize]
     [EnableCors("MyPolicy")]
     [Route("api/[controller]")]
-    public class UsuarioController : ControllerBase
+    [ApiController]
+    public class EntradaInventarioController : ControllerBase
     {
         [EnableCors("MyPolicy")]
         [HttpPost]
-        [Route("Login"), AllowAnonymous]
-        public Respuesta Login(Usuario request)
-        {
-            Respuesta miRespuesta = new Respuesta();
-
-            if (request != null)
-            {
-                miRespuesta = request.Login();
-            }
-            else
-            {
-                miRespuesta.codigoError = -15;
-                miRespuesta.mensaje = "Ocurrio un error al conectar el servidor";
-                miRespuesta.resultado = false;
-            }
-
-            return miRespuesta;
-        }
-
-
-        [EnableCors("MyPolicy")]
-        [HttpPost]
-        [Route("Listar"), Authorize]
-        public Respuesta Listar(Usuario request)
+        [Route("Listar")]
+        public Respuesta Listar(Entradainventario request)
         {
             Respuesta miRespuesta = new Respuesta();
 
@@ -53,10 +33,11 @@ namespace Api_PuntoVenta.Controllers
             return miRespuesta;
         }
 
+
         [EnableCors("MyPolicy")]
         [HttpPost]
-        [Route("Obtener"), Authorize]
-        public Respuesta Obtener(Usuario request)
+        [Route("Obtener")]
+        public Respuesta Obtener(Entradainventario request)
         {
             Respuesta miRespuesta = new Respuesta();
 
@@ -74,10 +55,10 @@ namespace Api_PuntoVenta.Controllers
             return miRespuesta;
         }
 
-
+        [EnableCors("MyPolicy")]
         [HttpPost]
-        [Route("Guardar"), Authorize]
-        public Respuesta Guardar(Usuario request)
+        [Route("Guardar")]
+        public Respuesta Guardar(Entradainventario request)
         {
             Respuesta miRespuesta = new Respuesta();
 
@@ -102,12 +83,5 @@ namespace Api_PuntoVenta.Controllers
             return miRespuesta;
         }
 
-
-        [HttpPost]
-        [Route("ValidarToken"), Authorize]
-        public bool ValidarToken()
-        {
-            return false;
-        }
     }
 }

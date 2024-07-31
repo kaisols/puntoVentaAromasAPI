@@ -129,6 +129,7 @@ namespace Api_PuntoVenta.Models
                                     WHERE P.estado = '{Convert.ToByte(this.estado)}'
                                     FOR JSON PATH";
                     }
+                     
 
                     objEncontrado = JsonConvert.DeserializeObject<List<Productos>>(objDatos.HacerSelectJSONPATH(consulta));
 
@@ -193,7 +194,7 @@ namespace Api_PuntoVenta.Models
                                         DECLARE @id as int = (SELECT ISNULL(MAX(id), 0) + 1 from T_Productos);
 
 		                                INSERT INTO T_Productos (id, idCategoria, idImpuesto, idUnidadMedida, nombre, codBarras, stock, reduceInventario, precioCompra, precioVenta,utilidad)
-                                        VALUES(@id, '{miCategoria.id}', '{miImpuesto.id}', '{miUnidadMedida.id}', '{nombre}', '{codBarras}', '0', '{reduceInventario}', '{precioCompra}', '{precioVenta}', '{utilidad}')
+                                        VALUES(@id, '{miCategoria.id}', '{miImpuesto.id}', '{miUnidadMedida.id}', '{nombre}', '{codBarras}', '0', '{reduceInventario}', '{precioCompra.ToString().Replace(",", ".")}', '{precioVenta.ToString().Replace(",", ".")}', '{utilidad.ToString().Replace(",", ".")}')
 
                                         {GetProveedores()}
 
