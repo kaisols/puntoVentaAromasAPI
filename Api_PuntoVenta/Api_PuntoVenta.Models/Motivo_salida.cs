@@ -9,23 +9,18 @@ using System.Threading.Tasks;
 namespace Api_PuntoVenta.Models
 {
     [ValidateNever]
-    public class Cliente : IOrdenConsulta
+    public class Motivo_salida : IOrdenConsulta
     {
         #region ============================= PROPIEDADES =============================
 
         public int id { get; set; }
-        public string? cedula { get; set; }
         public string? nombre { get; set; }
-        public string? correo { get; set; }
-        public string? telefono { get; set; } 
-        public string? direccion { get; set; } 
-        public DateTime? fecha_registro { get; set; }
+        public DateTime fecha_registro { get; set; }
         public bool estado { get; set; }
-        public int tipoConsulta { get; set; }
+        public int? tipoconsulta { get; set; }
         public Auditoria? miAuditoria { get; set; }
 
         #endregion ============================= PROPIEDADES =============================
-
 
         public Respuesta Actualizar()
         {
@@ -35,22 +30,31 @@ namespace Api_PuntoVenta.Models
                 //Cantidad de registros afectados por la consulta 
                 string consulta = string.Empty;
 
-                if (tipoConsulta == 1)
+                if (tipoconsulta == 1)
                 {
                     consulta = $@" DECLARE @id as int = '{id}';
 
-                                   UPDATE T_CLIENTE SET nombre = '{this.nombre}', correo = '{correo}', telefono = '{telefono}', direccion = '{direccion}'
-                                   WHERE id = @id;
+                                IF((SELECT COUNT(*) FROM T_Motivo_Salida WHERE nombre = '{nombre}' and id <> @id) <= 0)
+                                          BEGIN
+                                                    UPDATE T_Motivo_Salida SET nombre = '{this.nombre}'
+                                                   WHERE id = @id;
  
-                                   {miAuditoria.ObtenerAuditoria()}
+                                                   {miAuditoria.ObtenerAuditoria()}
                                    
-                                   SELECT 2;";
+                                                   SELECT 2;
+                                          END
+                                ELSE
+                                    BEGIN 
+                                        SELECT -50;
+                                    END
+
+                                   ";
                 }
 
-                else if (tipoConsulta == 2)
+                else if (tipoconsulta == 2)
                 {
 
-                    consulta = $@"UPDATE T_CLIENTE SET estado = '{this.estado}' WHERE id = '{this.id}'
+                    consulta = $@"UPDATE T_Motivo_Salida SET estado = '{this.estado}' WHERE id = '{this.id}'
                                             {miAuditoria.ObtenerAuditoria()}                                
                                             SELECT 2;";
                 }
@@ -60,7 +64,12 @@ namespace Api_PuntoVenta.Models
 
                 miRespuesta = transaccion(consulta);
 
-                if (miRespuesta.codigoError == -3)
+                if (miRespuesta.codigoError == -50)
+                {
+                    miRespuesta.resultado = false;
+                    miRespuesta.mensaje = "Ya tienes un registro con ese valor.";
+                }
+                else if (miRespuesta.codigoError == -3)
                 {
                     miRespuesta.resultado = false;
                     miRespuesta.mensaje = "Error al Realizar la Acción!";
@@ -94,20 +103,25 @@ namespace Api_PuntoVenta.Models
 
             try
             {
-                List<Cliente> objEncontrado = null;
+                List<Motivo_salida> objEncontrado = null;
                 string consulta = "";
 
                 if (objDatos.AbrirConexion())
                 {
-                    if (tipoConsulta == 1)
+                    if (tipoconsulta == 1)
                     {
-                        consulta = $@"SELECT id, nombre, correo, telefono, cedula, direccion, fecha_registro, estado
-                                    FROM T_CLIENTE C
-                                    WHERE estado = '{Convert.ToByte(this.estado)}'
+                        consulta = $@"SELECT id, nombre, fecha_registro, estado FROM T_Motivo_Salida
                                     FOR JSON PATH";
                     }
 
-                    objEncontrado = JsonConvert.DeserializeObject<List<Cliente>>(objDatos.HacerSelectJSONPATH(consulta));
+                    else if (tipoconsulta == 2)
+                    {
+                        consulta = $@"SELECT id, nombre, fecha_registro, estado FROM T_Motivo_Salida Where estado = '{Convert.ToByte(estado)}'
+                                    FOR JSON PATH";
+                    }
+
+
+                    objEncontrado = JsonConvert.DeserializeObject<List<Motivo_salida>>(objDatos.HacerSelectJSONPATH(consulta));
 
 
                     if (objEncontrado != null)
@@ -162,15 +176,15 @@ namespace Api_PuntoVenta.Models
                 //Cantidad de registros afectados por la consulta 
                 string consulta = string.Empty;
 
-                if (tipoConsulta == 1)
+                if (tipoconsulta == 1)
                 {
-                    consulta = $@"IF((SELECT COUNT(*) FROM T_CLIENTE WHERE nombre = '{nombre}') <= 0)
+                    consulta = $@"IF((SELECT COUNT(*) FROM T_Motivo_Salida WHERE nombre = '{nombre}') <= 0)
 	                                BEGIN
                                         
-                                        DECLARE @id as int = (SELECT ISNULL(MAX(id), 0) + 1 from T_CLIENTE);
+                                        DECLARE @id as int = (SELECT ISNULL(MAX(id), 0) + 1 from T_Motivo_Salida);
 
-		                                INSERT INTO T_CLIENTE (id, nombre, correo, telefono, direccion, cedula)
-		                                VALUES(@id, '{nombre}' ,'{correo}', '{telefono}', '{direccion}', '{cedula}'); 
+		                                INSERT INTO T_Motivo_Salida (id, nombre)
+		                                VALUES(@id, '{nombre}'); 
 
                                          {miAuditoria.ObtenerAuditoria()}
 
@@ -231,20 +245,18 @@ namespace Api_PuntoVenta.Models
 
             try
             {
-                Cliente objEncontrado = null;
+                Motivo_salida objEncontrado = null;
                 string consulta = "";
 
                 if (objDatos.AbrirConexion())
                 {
-                    if (tipoConsulta == 1)
+                    if (tipoconsulta == 1)
                     {
-                        consulta = $@"SELECT id, nombre, correo, telefono, cedula, direccion, fecha_registro, estado
-                                    FROM T_CLIENTE C
-                                    WHERE estado = '{Convert.ToByte(this.estado)}' AND id = '{this.id}'
+                        consulta = $@"SELECT id, nombre, fecha_registro, estado FROM T_Motivo_Salida WHERE id = '{this.id}'
                                     FOR JSON PATH, WITHOUT_ARRAY_WRAPPER";
                     }
 
-                    objEncontrado = JsonConvert.DeserializeObject<Cliente>(objDatos.HacerSelectJSONPATH(consulta));
+                    objEncontrado = JsonConvert.DeserializeObject<Motivo_salida>(objDatos.HacerSelectJSONPATH(consulta));
 
 
                     if (objEncontrado != null)
@@ -330,7 +342,6 @@ namespace Api_PuntoVenta.Models
 
 
         #endregion
-
 
     }
 }
