@@ -15,10 +15,10 @@ namespace Api_PuntoVenta.Models
         #region ============================= PROPIEDADES =============================
 
         public int id { get; set; }
-        public string nombre { get; set; }
-        public Permisos permisos { get; set; }
-        public DateTime fecha_registro { get; set; }
-        public bool estado { get; set; }
+        public string? nombre { get; set; }
+        public Permisos? permisos { get; set; }
+        public DateTime? fecha_registro { get; set; }
+        public bool? estado { get; set; }
         public int tipoConsulta { get; set; }
         public Auditoria? miAuditoria { get; set; }
 

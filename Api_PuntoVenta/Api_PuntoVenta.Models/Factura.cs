@@ -9,77 +9,32 @@ using System.Threading.Tasks;
 namespace Api_PuntoVenta.Models
 {
     [ValidateNever]
-    public class Proveedor : IOrdenConsulta
+    public class Factura : IOrdenConsulta
     {
         #region ============================= PROPIEDADES =============================
 
         public int id { get; set; }
-        public string? nombre { get; set; }
-        public string? cedula { get; set; }
-        public string? telefono { get; set; }
-        public string? correo { get; set; }
+        public Usuario? miUsuario { get; set; }
+        public Cliente? miCliente { get; set; }
+        public Aperturacaja? miApertura { get; set; }
+        public Tipofactura? miTipoFactura { get; set; }
+        public decimal subtotal { get; set; }
+        public decimal montoTotal { get; set; }
+        public decimal ivaTotal { get; set; }
+        public decimal descuento { get; set; }
         public DateTime fecha_registro { get; set; }
         public bool estado { get; set; }
         public int? tipoconsulta { get; set; }
         public Auditoria? miAuditoria { get; set; }
+        public List<Factura_Detalle>? Detalles { get; set; }  
 
         #endregion ============================= PROPIEDADES =============================
 
+
+        #region METODOS 
         public Respuesta Actualizar()
         {
-            Respuesta miRespuesta = new Respuesta();
-            try
-            {
-                //Cantidad de registros afectados por la consulta 
-                string consulta = string.Empty;
-
-                if (tipoconsulta == 1)
-                {
-                    consulta = $@"
-                                   UPDATE T_Proveedor SET nombre = '{this.nombre}', correo = '{correo}', telefono= '{telefono}' WHERE id = {id};
- 
-                                   {miAuditoria.ObtenerAuditoria()}
-                                   
-                                   SELECT 2;";
-                }
-
-                else if (tipoconsulta == 2)
-                {
-
-                    consulta = $@"UPDATE T_Proveedor SET estado = '{this.estado}' WHERE id = '{this.id}'
-                                            {miAuditoria.ObtenerAuditoria()}                                
-                                            SELECT 2;";
-                }
-
-
-
-
-                miRespuesta = transaccion(consulta);
-
-                if (miRespuesta.codigoError == -3)
-                {
-                    miRespuesta.resultado = false;
-                    miRespuesta.mensaje = "Error al Realizar la Acción!";
-                }
-                else if (miRespuesta.codigoError == 2)
-                {
-                    miRespuesta.resultado = true;
-                    miRespuesta.mensaje = "Actualizado con exito!";
-                }
-                else
-                {
-                    miRespuesta.resultado = false;
-                    miRespuesta.mensaje = "Error al Realizar la acción!";
-                }
-            }
-            catch (Exception es)
-            {
-                miRespuesta.mensaje = "Ocurrio un error al realizar la acción.";
-                miRespuesta.resultado = false;
-                miRespuesta.codigoError = -2;
-            }
-
-            return miRespuesta;
+            throw new NotImplementedException();
         }
 
         public Respuesta ConsultaMasiva()
@@ -90,26 +45,25 @@ namespace Api_PuntoVenta.Models
 
             try
             {
-                List<Proveedor> objEncontrado = null;
+                List<Entradainventario> objEncontrado = null;
                 string consulta = "";
 
                 if (objDatos.AbrirConexion())
                 {
                     if (tipoconsulta == 1)
                     {
-                        consulta = $@"SELECT id, nombre, cedula, telefono, correo, fecha_registro, estado 
-                                    FROM T_Proveedor
+                        consulta = $@" SELECT F.id, F.subtotal, F.montoTotal, F.ivaTotal, F.descuento, F.fecha_registro, F.estado,
+                                         TF.id 'miTipoFactura.id', TF.nombre 'miTipoFactura.nombre',
+                                         C.id 'miCliente.id', C.nombre 'miCliente.nombre', C.cedula 'miCliente.Cedula', C.telefono 'miCliente.telefono',
+                                         U.id 'miUsuario.id', U.nombre 'miUsuario.nombre', U.apellidos 'miUsuario.apellidos', F.idApertura as 'miApertura.id'
+                                         FROM T_Factura F
+                                         INNER JOIN T_TipoFactura TF ON TF.id = F.idTipoFactura
+                                         INNER JOIN T_Cliente C on C.id = F.idCliente
+                                         INNER JOIN T_USUARIO U on U.id = F.idUsuario 
                                     FOR JSON PATH";
                     }
 
-                    if (tipoconsulta == 2)
-                    {
-                        consulta = $@"SELECT id, nombre, cedula, telefono, correo, fecha_registro, estado 
-                                    FROM T_Proveedor WHERE estado = '{estado}'
-                                    FOR JSON PATH";
-                    }
-
-                    objEncontrado = JsonConvert.DeserializeObject<List<Proveedor>>(objDatos.HacerSelectJSONPATH(consulta));
+                    objEncontrado = JsonConvert.DeserializeObject<List<Entradainventario>>(objDatos.HacerSelectJSONPATH(consulta));
 
 
                     if (objEncontrado != null)
@@ -166,26 +120,21 @@ namespace Api_PuntoVenta.Models
 
                 if (tipoconsulta == 1)
                 {
-                    consulta = $@"IF((SELECT COUNT(*) FROM T_Proveedor WHERE cedula = '{cedula}') <= 0)
-	                                BEGIN
-                                        
-                                        DECLARE @id as int = (SELECT ISNULL(MAX(id), 0) + 1 from T_Proveedor);
+                    consulta = $@" DECLARE @id as int = (SELECT ISNULL(MAX(id), 0) + 1 from T_Factura);
 
-		                                INSERT INTO T_Proveedor (id, nombre, cedula, telefono, correo)
-		                                VALUES(@id, '{nombre}', '{cedula}', '{telefono}', '{correo}'); 
+		                               INSERT INTO T_Factura (id, idUsuario, idCliente, idTipoFactura, subtotal, montoTotal, ivaTotal, descuento, idApertura)
+                                       VALUES(@id, '{miUsuario.id}', '{miCliente.id}', '{miTipoFactura.id}', '{subtotal.ToString().Replace(",", ".")}',
+                                              '{montoTotal.ToString().Replace(",", ".")}', '{ivaTotal.ToString().Replace(",", ".")}', '{descuento.ToString().Replace(",", ".")}',
+                                              '{miApertura.id}'
+                                              )
+
+                            
+                                        {InsertDetalles()}
+
 
                                          {miAuditoria.ObtenerAuditoria()}
 
-                                          SELECT 2;
-
-
-	                                END
-                                ELSE
-	                                BEGIN
-                                        SELECT -50;
-                                    END
-
-                                           ";
+                                          SELECT @id;";
                 }
 
 
@@ -193,21 +142,15 @@ namespace Api_PuntoVenta.Models
 
                 miRespuesta = transaccion(consulta);
 
-                if (miRespuesta.codigoError == -50)
-                {
-                    miRespuesta.resultado = false;
-                    miRespuesta.mensaje = "Ya tienes un registro con ese valor.";
-                }
-
-                else if (miRespuesta.codigoError == -3)
+                if (miRespuesta.codigoError == -3)
                 {
                     miRespuesta.resultado = false;
                     miRespuesta.mensaje = "Error al Realizar la Acción!";
                 }
-                else if (miRespuesta.codigoError == 2)
+                else if (miRespuesta.codigoError > 0)
                 {
                     miRespuesta.resultado = true;
-                    miRespuesta.mensaje = "Guardado con exito!";
+                    miRespuesta.mensaje = "Factura Generada con Exito; Factura # "+ miRespuesta.codigoError.ToString();
                 }
                 else
                 {
@@ -233,20 +176,33 @@ namespace Api_PuntoVenta.Models
 
             try
             {
-                Proveedor objEncontrado = null;
+                Factura objEncontrado = null;
                 string consulta = "";
 
                 if (objDatos.AbrirConexion())
                 {
                     if (tipoconsulta == 1)
                     {
-                        consulta = $@"SELECT id, nombre, cedula, telefono, correo, fecha_registro, estado 
-                                    FROM T_Proveedor
-                                    WHERE id = '{id}' 
-                                    FOR JSON PATH, WITHOUT_ARRAY_WRAPPER";
+                        consulta = $@" SELECT F.id, F.subtotal, F.montoTotal, F.ivaTotal, F.descuento, F.fecha_registro, F.estado,
+                                         TF.id 'miTipoFactura.id', TF.nombre 'miTipoFactura.nombre',
+                                         C.id 'miCliente.id', C.nombre 'miCliente.nombre', C.cedula 'miCliente.Cedula', C.telefono 'miCliente.telefono',
+                                         U.id 'miUsuario.id', U.nombre 'miUsuario.nombre', U.apellidos 'miUsuario.apellidos',
+                                         (SELECT D.id, D.cantidad, D.subtotal, D.montoTotal, D.ivaTotal, D.descuento, D.fecha_registro, D.estado,
+                                         P.id 'miProducto.id', P.nombre 'miProducto.nombre', F.idApertura 'miApertura.id'
+                                         FROM T_Factura_Detalles D
+                                         INNER JOIN T_Productos P on P.id = D.idProducto
+                                         WHERE D.idFactura = F.id
+                                         FOR JSON PATH) as Detalles
+                                         FROM T_Factura F
+                                         INNER JOIN T_TipoFactura TF ON TF.id = F.idTipoFactura
+                                         INNER JOIN T_Cliente C on C.id = F.idCliente
+                                         INNER JOIN T_USUARIO U on U.id = F.idUsuario
+                                         WHERE F.id= {id}
+
+                                      FOR JSON PATH, WITHOUT_ARRAY_WRAPPER";
                     }
 
-                    objEncontrado = JsonConvert.DeserializeObject<Proveedor>(objDatos.HacerSelectJSONPATH(consulta));
+                    objEncontrado = JsonConvert.DeserializeObject<Factura>(objDatos.HacerSelectJSONPATH(consulta));
 
 
                     if (objEncontrado != null)
@@ -293,6 +249,30 @@ namespace Api_PuntoVenta.Models
             return miRespuesta;
         }
 
+        public string InsertDetalles()
+        {
+            string consulta = "";
+
+            if (Detalles != null && Detalles.Count > 0)
+            {
+                foreach (var item in Detalles)
+                {
+                    consulta += $@"INSERT INTO T_Factura_Detalles (id, idFactura, idProducto, cantidad, subtotal, montoTotal, ivaTotal, descuento)
+                                    VALUES((SELECT ISNULL(MAX(id), 0) + 1 from T_Factura_Detalles), @id, '{item.miProducto.id}', 
+                                       '{item.cantidad.ToString().Replace(",", ".")}', '{item.subtotal.ToString().Replace(",", ".")}'
+                                        ,'{item.montoTotal.ToString().Replace(",", ".")}'
+                                        ,'{item.ivaTotal.ToString().Replace(",", ".")}'
+                                        ,'{item.descuento.ToString().Replace(",", ".")}'
+                                        )
+                                    
+                                 UPDATE T_Productos SET stock -= {item.cantidad.ToString().Replace(",", ".")} WHERE id = '{item.miProducto.id}' 
+                                " + Environment.NewLine + Environment.NewLine;
+                }
+            }
+
+            return consulta;
+        }
+
         #region ************************************** TRANSACTION **************************************
         public Respuesta transaccion(string query)
         {
@@ -333,5 +313,7 @@ namespace Api_PuntoVenta.Models
 
         #endregion
 
+        #endregion
     }
+
 }

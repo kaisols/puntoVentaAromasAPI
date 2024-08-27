@@ -14,7 +14,7 @@ namespace Api_PuntoVenta.Models
         #region ============================= PROPIEDADES =============================
 
         public int id { get; set; }
-        public Usuario miUsuario { get; set; }
+        public Usuario? miUsuario { get; set; }
         public Cierrecaja? miCierreCaja { get; set; }
         public Caja? miCaja { get; set; }
         public decimal montoCaja { get; set; }
@@ -39,7 +39,7 @@ namespace Api_PuntoVenta.Models
                     consulta = $@"                                
                                 IF NOT EXISTS (SELECT 1 FROM T_AperturaCaja
                                 WHERE idUsuario = '{miUsuario}' AND CONVERT(DATE, fecha_registro, 121) = CONVERT(DATE, GETDATE(), 121)
-                                AND estado = 1 AND idCierreCaja IS NOT NULL AND idCaja = '{miCaja.id}'
+                                AND estado = 1 AND idCierreCaja IS NOT NULL AND idCaja = '{miCaja.id}' AND idCierreCaja IS NULL
                                 )
 
 	                                BEGIN

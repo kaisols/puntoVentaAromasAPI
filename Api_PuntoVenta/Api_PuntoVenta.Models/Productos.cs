@@ -129,7 +129,22 @@ namespace Api_PuntoVenta.Models
                                     WHERE P.estado = '{Convert.ToByte(this.estado)}'
                                     FOR JSON PATH";
                     }
-                     
+
+                    else if (tipoconsulta == 2)
+                    {
+                        consulta = $@"SELECT 
+                                    P.id, P.nombre, P.codBarras, P.stock, P.reduceInventario, P.precioCompra, P.precioVenta, P.utilidad, P.fecha_registro, P.estado,
+                                    C.id as 'miCategoria.id', C.nombre 'miCategoria.nombre',
+                                    I.id as 'miImpuesto.id', I.nombre as 'miImpuesto.nombre', I.PorcentajeIVA as 'miImpuesto.PorcentajeIVA',
+                                    U.id as 'miUnidadMedida.miUnidadMedida', U.nombre as 'miUnidadMedida.nombre'
+                                    FROM T_Productos P
+                                    INNER JOIN T_Categoria C on C.id = P.idCategoria
+                                    INNER JOIN T_UnidadMedida U on U.id = P.idUnidadMedida
+                                    INNER JOIN T_Impuesto I on I.id = P.idImpuesto
+                                    WHERE P.estado = '{Convert.ToByte(this.estado)}' AND P.stock > 0
+                                    FOR JSON PATH";
+                    }
+
 
                     objEncontrado = JsonConvert.DeserializeObject<List<Productos>>(objDatos.HacerSelectJSONPATH(consulta));
 
